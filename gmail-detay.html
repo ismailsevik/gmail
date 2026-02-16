@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gmail - Detay</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* --- TEMEL AYARLAR --- */
+        :root {
+            --primary-red: #db4437;
+            --bg-color: #f5f5f5;
+            --text-dark: #212121;
+            --text-light: #757575;
+            --divider: #e0e0e0;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--bg-color);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- ORTAK HEADER STİLLERİ --- */
+        header {
+            background-color: var(--primary-red);
+            color: white;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.26);
+            z-index: 10;
+            flex-shrink: 0;
+        }
+
+        .header-icon {
+            font-size: 20px;
+            margin-right: 20px;
+            cursor: pointer;
+            width: 24px;
+            text-align: center;
+        }
+        
+        .header-actions {
+            margin-left: auto;
+            display: flex;
+            gap: 20px;
+        }
+
+        .header-title {
+            font-size: 20px;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* --- GÖRÜNÜM KONTROLÜ (SPA Mantığı) --- */
+        .view-section {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            width: 100%;
+            transition: transform 0.3s ease;
+        }
+
+        /* Başlangıçta detay gizli */
+        #detailView {
+            display: none; 
+            background: white;
+        }
+
+        /* --- LİSTE GÖRÜNÜMÜ --- */
+        .email-list {
+            flex: 1;
+            overflow-y: auto;
+            background: white;
+            padding-bottom: 80px;
+        }
+
+        .email-item {
+            display: flex;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--divider);
+            cursor: pointer;
+            transition: background 0.1s;
+        }
+        .email-item:active { background-color: #eee; }
+
+        .avatar {
+            width: 40px; height: 40px; border-radius: 50%;
+            color: white; display: flex; align-items: center; justify-content: center;
+            font-size: 20px; font-weight: 500; margin-right: 16px; flex-shrink: 0;
+        }
+
+        .email-content { flex-grow: 1; min-width: 0; }
+        .email-header-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
+        .sender { font-weight: 700; color: var(--text-dark); }
+        .date { font-size: 12px; color: var(--text-dark); }
+        .subject { font-weight: 700; font-size: 14px; color: var(--text-dark); }
+        .snippet { font-size: 14px; color: var(--text-light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        /* --- DETAY GÖRÜNÜMÜ (YENİ EKLENDİ) --- */
+        .detail-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 16px;
+        }
+
+        .detail-subject-line {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+
+        .detail-subject {
+            font-size: 18px;
+            color: #222;
+            font-weight: 500;
+            line-height: 1.2;
+            width: 90%;
+        }
+
+        .detail-tag {
+            background: #ddd;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #444;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .detail-sender-area {
+            display: flex;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+
+        .detail-meta {
+            margin-left: 12px;
+            flex-grow: 1;
+        }
+
+        .detail-sender-name {
+            font-weight: 700;
+            color: #222;
+            font-size: 15px;
+        }
+        
+        .detail-sender-email {
+            font-weight: 400;
+            color: #777;
+            font-size: 13px;
+        }
+
+        .detail-to-me {
+            font-size: 12px;
+            color: #777;
+            display: flex;
+            align-items: center;
+        }
+
+        .detail-time {
+            font-size: 12px;
+            color: #777;
+        }
+
+        .detail-body {
+            font-size: 15px;
+            line-height: 1.5;
+            color: #333;
+            white-space: pre-wrap; /* Satır boşluklarını koru */
+        }
+
+        /* Alt Butonlar (Yanıtla/İlet) */
+        .detail-actions {
+            margin-top: 30px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .action-btn {
+            border: 1px solid #ddd;
+            background: #fff;
+            padding: 10px 20px;
+            border-radius: 4px;
+            color: #555;
+            font-weight: 500;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+        
+        .action-btn:active { background: #eee; }
+
+        /* FAB */
+        .fab {
+            position: fixed; bottom: 24px; right: 24px;
+            width: 56px; height: 56px; background-color: var(--primary-red);
+            border-radius: 50%; box-shadow: 0 6px 10px rgba(0,0,0,0.3);
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-size: 24px; cursor: pointer; z-index: 20;
+            transition: transform 0.2s;
+        }
+        .fab.hidden { transform: scale(0); } /* Detaydayken gizle */
+
+        /* Renkler */
+        .bg-blue { background-color: #4285f4; }
+        .bg-green { background-color: #0f9d58; }
+        .bg-purple { background-color: #9c27b0; }
+        .bg-orange { background-color: #ff9800; }
+        .bg-dark { background-color: #333; }
+
+    </style>
+</head>
+<body>
+
+    <div id="listView" class="view-section">
+        <header>
+            <i class="fas fa-bars header-icon" onclick="alert('Sidebar açıldı (önceki kod)')"></i>
+            <div class="header-title">Gelen Kutusu</div>
+            <div class="header-actions">
+                <i class="fas fa-search header-icon"></i>
+            </div>
+        </header>
+
+        <main class="email-list" id="emailListContainer">
+            </main>
+        
+        <div class="fab" id="mainFab">
+            <i class="fas fa-pen"></i>
+        </div>
+    </div>
+
+    <div id="detailView" class="view-section">
+        <header>
+            <i class="fas fa-arrow-left header-icon" onclick="closeEmail()"></i>
+            <div class="header-actions">
+                <i class="fas fa-archive header-icon"></i>
+                <i class="fas fa-trash header-icon"></i>
+                <i class="fas fa-envelope header-icon"></i> <i class="fas fa-ellipsis-v header-icon"></i>
+            </div>
+        </header>
+
+        <div class="detail-content">
+            <div class="detail-subject-line">
+                <div class="detail-subject" id="detailSubject">Konu Başlığı</div>
+                <div class="detail-tag">Gelen Kutusu</div>
+                <i class="far fa-star" style="font-size:20px; color:#888;"></i>
+            </div>
+
+            <div class="detail-sender-area">
+                <div class="avatar bg-blue" id="detailAvatar">A</div>
+                <div class="detail-meta">
+                    <div class="detail-sender-name" id="detailSender">Gönderen Adı</div>
+                    <div class="detail-to-me">Bana <i class="fas fa-caret-down" style="margin-left:4px;"></i></div>
+                </div>
+                <div class="detail-time" id="detailDate">10:42</div>
+                <i class="fas fa-reply" style="margin-left:15px; color:#757575;"></i>
+            </div>
+
+            <div class="detail-body" id="detailBody">
+                </div>
+
+            <div class="detail-actions">
+                <button class="action-btn"><i class="fas fa-reply"></i> Yanıtla</button>
+                <button class="action-btn"><i class="fas fa-share"></i> İlet</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Veri Seti (Genişletilmiş)
+        const emails = [
+            { 
+                id: 1, 
+                sender: 'Google', 
+                fullSender: 'Google Community Team',
+                subject: 'Güvenlik uyarısı: Hesabınızda şüpheli işlem', 
+                snippet: 'Google Hesabınızda yeni bir oturum açma...', 
+                date: '10:42', 
+                color: 'bg-blue', 
+                initial: 'G',
+                body: "Merhaba Kullanıcı,\n\nHesabınızda yeni bir cihazdan oturum açıldığını fark ettik.\n\nCihaz: iPhone 12\nKonum: İstanbul, Türkiye\n\nEğer bu sizseniz, bu mesajı dikkate almayın. Eğer siz değilseniz, lütfen şifrenizi hemen değiştirin.\n\nTeşekkürler,\nGoogle Ekibi"
+            },
+            { 
+                id: 2,
+                sender: 'Netflix', 
+                fullSender: 'Netflix Türkiye',
+                subject: 'Filmlerine kaldığın yerden devam et', 
+                snippet: 'İzlemeye devam etmek için hemen tıkla...', 
+                date: 'Dün', 
+                color: 'bg-red', 
+                initial: 'N', 
+                style: 'background:#e50914',
+                body: "Selamlar!\n\nGeçen hafta izlemeye başladığın 'Stranger Things' dizisini yarım bıraktın.\n\nHafta sonu yaklaşırken patlamış mısırını al ve maceraya geri dön.\n\nİyi seyirler,\nNetflix"
+            },
+            {
+                id: 3,
+                sender: 'Spotify',
+                fullSender: 'Spotify',
+                subject: 'Haftalık Keşif listen hazır',
+                snippet: 'Sana özel hazırladığımız çalma listesi...',
+                date: '28 Oca',
+                color: 'bg-green',
+                initial: 'S',
+                body: "Müzik dolu bir hafta dileriz!\n\nDinleme alışkanlıklarına göre hazırladığımız 30 şarkılık yeni listen hazır. Bu hafta indie ve rock ağırlıklı bir seçki seni bekliyor.\n\nŞimdi dinle."
+            }
+        ];
+
+        // Listeyi Render Et
+        const listContainer = document.getElementById('emailListContainer');
+        
+        function renderList() {
+            listContainer.innerHTML = '';
+            emails.forEach(email => {
+                const bgStyle = email.style ? `style="${email.style}"` : `class="avatar ${email.color}"`;
+                
+                const html = `
+                    <div class="email-item" onclick="openEmail(${email.id})">
+                        <div ${bgStyle} class="avatar ${email.color}">${email.initial}</div>
+                        <div class="email-content">
+                            <div class="email-header-row">
+                                <span class="sender">${email.sender}</span>
+                                <span class="date">${email.date}</span>
+                            </div>
+                            <div class="subject">${email.subject}</div>
+                            <div class="snippet">${email.snippet}</div>
+                        </div>
+                    </div>
+                `;
+                listContainer.insertAdjacentHTML('beforeend', html);
+            });
+        }
+
+        // Görünüm Değiştirme Fonksiyonları
+        function openEmail(id) {
+            const email = emails.find(e => e.id === id);
+            if(!email) return;
+
+            // Detay sayfasını doldur
+            document.getElementById('detailSubject').innerText = email.subject;
+            document.getElementById('detailSender').innerText = email.fullSender;
+            document.getElementById('detailDate').innerText = email.date;
+            document.getElementById('detailBody').innerText = email.body;
+            
+            // Avatarı güncelle
+            const avatarDiv = document.getElementById('detailAvatar');
+            avatarDiv.className = `avatar ${email.color}`;
+            if(email.style) {
+                avatarDiv.setAttribute('style', email.style);
+            } else {
+                avatarDiv.removeAttribute('style');
+            }
+            avatarDiv.innerText = email.initial;
+
+            // Ekranları değiştir
+            document.getElementById('listView').style.display = 'none';
+            document.getElementById('detailView').style.display = 'flex';
+            
+            // FAB'ı gizle
+            document.getElementById('mainFab').classList.add('hidden');
+        }
+
+        function closeEmail() {
+            document.getElementById('detailView').style.display = 'none';
+            document.getElementById('listView').style.display = 'flex';
+            
+            // FAB'ı geri getir
+            document.getElementById('mainFab').classList.remove('hidden');
+        }
+
+        // Başlat
+        renderList();
+
+    </script>
+</body>
+</html>
